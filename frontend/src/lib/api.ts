@@ -103,11 +103,23 @@ API.interceptors.request.use((config) => {
 
 export const signUp = async (formData: AuthCredentials): Promise<ApiResponse<AuthResponse>> => {
     try {
+        console.log('📤 Sending signup request to:', `${API_BASE_URL}/auth/signup`);
+        console.log('📤 Request data:', { email: formData.email, password: '[REDACTED]' });
+        
         const response = await API.post('auth/signup', formData);
+        console.log('📨 Signup response:', response.data);
         return { data: response.data };
     } catch (error: unknown) {
-        const axiosError = error as { response?: { data?: unknown } };
-        return { error: axiosError.response?.data as { message: string } || { message: 'An unknown error occurred.' } };
+        const axiosError = error as { response?: { data?: unknown; status?: number } };
+        console.error('🔥 Signup API error:', {
+            status: axiosError.response?.status,
+            data: axiosError.response?.data,
+            fullError: error
+        });
+        
+        return { 
+            error: axiosError.response?.data as { message: string; error?: string } || { message: 'An unknown error occurred.' } 
+        };
     }
 };
 

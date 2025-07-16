@@ -14,6 +14,7 @@ router.get('/test', (req, res) => {
 router.post('/auth/signup', async (req, res) => {
     try {
         // Processing signup request
+        console.log('📝 Signup request received:', req.body);
         
         const { email, password, name } = req.body;
         
@@ -23,10 +24,12 @@ router.post('/auth/signup', async (req, res) => {
         
         const session = store.openSession();
         try {
+            console.log('🔍 Checking for existing user with email:', email);
             // Check if user already exists
             const existingUser = await session.query({ collection: 'Users' })
                 .whereEquals('email', email)
                 .firstOrNull();
+            console.log('👤 Existing user found:', !!existingUser);
                 
             if (existingUser) {
                 return res.status(400).json({ error: 'User already exists' });

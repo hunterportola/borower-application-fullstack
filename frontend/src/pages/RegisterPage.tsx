@@ -34,18 +34,25 @@ export function RegisterPage() {
     }
 
     try {
+      console.log('🚀 Attempting signup with data:', { email: formData.email, password: '[REDACTED]' });
+      
       // Updated to use our new signUp function
       const result = await signUp(formData);
+      
+      console.log('📥 Signup result:', result);
 
       if (result.error) {
-        setError(result.error.message || 'Registration failed');
+        const errorMessage = result.error.error || result.error.message || 'Registration failed';
+        console.error('❌ Signup error:', result.error);
+        setError(`Registration failed: ${errorMessage}`);
       } else {
+        console.log('✅ Signup successful, navigating to login');
         // On success, navigate to the login page
         navigate('/login');
       }
     } catch (err) {
-      setError('An unexpected error occurred');
-      console.error('Registration error:', err);
+      console.error('💥 Unexpected registration error:', err);
+      setError(`An unexpected error occurred: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsLoading(false);
     }
