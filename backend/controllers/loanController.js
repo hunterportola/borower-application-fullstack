@@ -1,13 +1,15 @@
 // In backend/controllers/loanController.js
-const store = require('../database');
+import store from '../database.js';
 
-exports.submitApplication = async (req, res) => {
+export const submitApplication = async (req, res) => {
+    // Application submission started
+    
     // We expect the entire Redux state to be sent in the request body
     const applicationData = req.body;
 
-    // You would get the userId from your authentication token in a real app
-    // For now, we'll use a placeholder
-    const userId = req.user ? req.user.userId : 'placeholder-user-id';
+    // Get the userId from the authenticated user, or use null for anonymous submissions
+    const userId = req.user ? req.user.id : null;
+    // User authenticated for application submission
 
     if (!applicationData) {
         return res.status(400).json({ message: 'No application data received.' });
@@ -25,6 +27,8 @@ exports.submitApplication = async (req, res) => {
             }
         };
 
+        // Saving application to database
+
         await session.store(newApplication);
         await session.saveChanges();
 
@@ -33,6 +37,9 @@ exports.submitApplication = async (req, res) => {
             applicationId: newApplication.id 
         });
     } catch (error) {
+        console.error('Error in submitApplication:', error);
         res.status(500).json({ message: 'Server error while submitting application.', error: error.message });
+    } finally {
+        session.dispose();
     }
 };

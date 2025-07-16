@@ -6,7 +6,7 @@ const authConfig = {
     secret: process.env.BETTER_AUTH_SECRET,
     baseURL: process.env.BETTER_AUTH_URL,
     basePath: '/api/auth',
-    trustedOrigins: process.env.BETTER_AUTH_TRUSTED_ORIGINS?.split(',') || ['http://localhost:5173'],
+    trustedOrigins: process.env.BETTER_AUTH_TRUSTED_ORIGINS?.split(',') || [process.env.FRONTEND_URL || 'http://localhost:5173'],
     session: {
         expiresIn: parseInt(process.env.SESSION_MAX_AGE) || 60 * 60 * 24 * 7, // 7 days
         updateAge: parseInt(process.env.SESSION_UPDATE_AGE) || 60 * 60 * 24, // 1 day

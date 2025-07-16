@@ -1,25 +1,26 @@
-import { useState } from 'react';
+import { useState, Suspense, lazy } from 'react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store/store';
 import { Button } from '../components/Button';
 import { EditModal } from '../components/EditModal';
+import { submitApplication } from '../lib/api';
 
-// Import all step components
-import { Step1_LoanPurpose } from '../components/application/Step1_LoanPurpose';
-import { Step2_LoanAmount } from '../components/application/Step2_LoanAmount';
-import { Step3_LegalName } from '../components/application/Step3_LegalName';
-import { Step4_Birthday } from '../components/application/Step4_Birthday';
-import { Step5_Address } from '../components/application/Step5_Address';
-import { Step6_HousingStatus } from '../components/application/Step6_HousingStatus';
-import { Step7_PhoneNumber } from '../components/application/Step7_PhoneNumber';
-import { Step8_Education } from '../components/application/Step8_Education';
-import { Step9_EducationDetails } from '../components/application/Step9_EducationDetails';
-import { Step10_Income } from '../components/application/Step10_Income';
-import { Step11_Savings } from '../components/application/Step11_Savings';
-import { Step12_RecentLoans } from '../components/application/Step12_RecentLoans';
-import { Step13_Vehicle } from '../components/application/Step13_Vehicle';
-import { Step14_Review } from '../components/application/Step14_Review';
-import { Step15_Agreement } from '../components/application/Step15_Agreement'; // Import the final step
+// Lazy load all step components for better performance
+const Step1_LoanPurpose = lazy(() => import('../components/application/Step1_LoanPurpose').then(m => ({ default: m.Step1_LoanPurpose })));
+const Step2_LoanAmount = lazy(() => import('../components/application/Step2_LoanAmount').then(m => ({ default: m.Step2_LoanAmount })));
+const Step3_LegalName = lazy(() => import('../components/application/Step3_LegalName').then(m => ({ default: m.Step3_LegalName })));
+const Step4_Birthday = lazy(() => import('../components/application/Step4_Birthday').then(m => ({ default: m.Step4_Birthday })));
+const Step5_Address = lazy(() => import('../components/application/Step5_Address').then(m => ({ default: m.Step5_Address })));
+const Step6_HousingStatus = lazy(() => import('../components/application/Step6_HousingStatus').then(m => ({ default: m.Step6_HousingStatus })));
+const Step7_PhoneNumber = lazy(() => import('../components/application/Step7_PhoneNumber').then(m => ({ default: m.Step7_PhoneNumber })));
+const Step8_Education = lazy(() => import('../components/application/Step8_Education').then(m => ({ default: m.Step8_Education })));
+const Step9_EducationDetails = lazy(() => import('../components/application/Step9_EducationDetails').then(m => ({ default: m.Step9_EducationDetails })));
+const Step10_Income = lazy(() => import('../components/application/Step10_Income').then(m => ({ default: m.Step10_Income })));
+const Step11_Savings = lazy(() => import('../components/application/Step11_Savings').then(m => ({ default: m.Step11_Savings })));
+const Step12_RecentLoans = lazy(() => import('../components/application/Step12_RecentLoans').then(m => ({ default: m.Step12_RecentLoans })));
+const Step13_Vehicle = lazy(() => import('../components/application/Step13_Vehicle').then(m => ({ default: m.Step13_Vehicle })));
+const Step14_Review = lazy(() => import('../components/application/Step14_Review').then(m => ({ default: m.Step14_Review })));
+const Step15_Agreement = lazy(() => import('../components/application/Step15_Agreement').then(m => ({ default: m.Step15_Agreement })));
 
 // Import all edit form components
 import { EditLoanAmountForm } from '../components/application/edit-forms/EditLoanAmountForm';
@@ -40,8 +41,12 @@ export function LoanApplicationPage() {
   const [currentStep, setCurrentStep] = useState(1);
   const [showErrors, setShowErrors] = useState(false);
   const [editingSection, setEditingSection] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const [submissionSuccess, setSubmissionSuccess] = useState(false);
 
   const { personalInfo, financialInfo, agreementInfo } = useSelector((state: RootState) => state.loanApplication);
+  const applicationState = useSelector((state: RootState) => state.loanApplication);
 
   const handleEditSection = (section: string) => { setEditingSection(section); };
   const handleCloseModal = () => { setEditingSection(null); };
@@ -63,9 +68,30 @@ export function LoanApplicationPage() {
     }
     
     if (currentStep === TOTAL_STEPS) {
-        // Here you would typically submit the form data to your backend
-        console.log("Submitting Application...");
-        alert("Application Submitted!");
+        // Submit the application to the backend
+        const handleSubmit = async () => {
+            setIsSubmitting(true);
+            setSubmissionError(null);
+            
+            try {
+                const result = await submitApplication(applicationState);
+                if (result.data) {
+                    setSubmissionSuccess(true);
+                    setSubmissionError(null);
+                    // Application submitted successfully - user can see success message
+                } else if (result.error) {
+                    setSubmissionError(result.error.message || 'Failed to submit application');
+                }
+            } catch (error) {
+                setSubmissionError('Network error. Please check your connection and try again.');
+            } finally {
+                setIsSubmitting(false);
+            }
+        };
+        
+        if (!isSubmitting && !submissionSuccess) {
+            handleSubmit();
+        }
         return;
     }
 
@@ -119,8 +145,47 @@ export function LoanApplicationPage() {
 
   return (
     <div className="max-w-2xl mx-auto p-4 sm:p-8">
+      {/* Success Message */}
+      {submissionSuccess && (
+        <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+          <div className="flex">
+            <div className="text-green-800">
+              <h3 className="text-lg font-medium">Application Submitted Successfully!</h3>
+              <p className="mt-1 text-sm">We've received your loan application and will review it shortly.</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Error Message */}
+      {submissionError && !submissionSuccess && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex">
+            <div className="text-red-800">
+              <h3 className="text-lg font-medium">Submission Error</h3>
+              <p className="mt-1 text-sm">{submissionError}</p>
+              <button 
+                onClick={() => setSubmissionError(null)}
+                className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <div className="bg-cloud p-6 sm:p-8 rounded-lg shadow-medium border border-pebble min-h-[400px]">
-        {renderStep()}
+        <Suspense fallback={
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+              <p className="mt-2 text-sm text-gray-600">Loading step...</p>
+            </div>
+          </div>
+        }>
+          {renderStep()}
+        </Suspense>
       </div>
       
       <EditModal isOpen={editingSection !== null} onClose={handleCloseModal} onUpdate={handleCloseModal} title={modalContent.title}>
@@ -128,13 +193,23 @@ export function LoanApplicationPage() {
       </EditModal>
 
       <div className="flex w-full gap-4 mt-8">
-        <Button variant="outline" onClick={handleBack} className={currentStep === 1 ? 'invisible' : 'w-1/4'}>Back</Button>
+        <Button 
+          variant="outline" 
+          onClick={handleBack} 
+          className={currentStep === 1 ? 'invisible' : 'w-1/4'}
+          disabled={isSubmitting}
+        >
+          Back
+        </Button>
         <Button 
           variant="primary" 
           onClick={handleNext}
           className={currentStep === 1 ? 'invisible' : 'w-3/4'}
+          disabled={isSubmitting || submissionSuccess}
         >
-          {currentStep === TOTAL_STEPS ? 'Agree and check your rate' : 'Next'}
+          {isSubmitting ? 'Submitting...' : 
+           submissionSuccess ? 'Application Submitted' :
+           currentStep === TOTAL_STEPS ? 'Agree and check your rate' : 'Next'}
         </Button>
       </div>
     </div>
