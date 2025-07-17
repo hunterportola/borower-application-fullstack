@@ -85,7 +85,7 @@ interface AuthResponse {
 }
 
 // Set up a base URL for our backend
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3002/api';
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3003/api';
 export const EXTERNAL_API_BASE_URL = import.meta.env.VITE_EXTERNAL_API_BASE_URL || 'http://localhost:3001/api';
 
 const API = axios.create({
@@ -139,6 +139,16 @@ export const signIn = async (credentials: AuthCredentials): Promise<ApiResponse<
 export const submitApplication = async (applicationData: LoanApplicationData): Promise<ApiResponse<{ id: string; message: string }>> => {
     try {
         const response = await API.post('application', applicationData);
+        return { data: response.data };
+    } catch (error: unknown) {
+        const axiosError = error as { response?: { data?: unknown } };
+        return { error: axiosError.response?.data as { message: string } || { message: 'An unknown error occurred.' } };
+    }
+};
+
+export const fetchUserApplication = async (): Promise<ApiResponse<any>> => {
+    try {
+        const response = await API.get('application/me');
         return { data: response.data };
     } catch (error: unknown) {
         const axiosError = error as { response?: { data?: unknown } };

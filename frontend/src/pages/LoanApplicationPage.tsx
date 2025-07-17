@@ -1,9 +1,10 @@
-import { useState, Suspense, lazy } from 'react';
-import { useSelector } from 'react-redux';
+import { useState, Suspense, lazy, useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import type { RootState } from '../store/store';
 import { Button } from '../components/Button';
 import { EditModal } from '../components/EditModal';
-import { submitApplication } from '../lib/api';
+import { submitApplication, fetchUserApplication } from '../lib/api';
+import { loadApplicationData } from '../store/loanApplicationSlice';
 
 // Lazy load all step components for better performance
 const Step1_LoanPurpose = lazy(() => import('../components/application/Step1_LoanPurpose').then(m => ({ default: m.Step1_LoanPurpose })));
@@ -44,9 +45,28 @@ export function LoanApplicationPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
+  const dispatch = useDispatch();
   const { personalInfo, financialInfo, agreementInfo } = useSelector((state: RootState) => state.loanApplication);
   const applicationState = useSelector((state: RootState) => state.loanApplication);
+
+  useEffect(() => {
+    const loadUserApplication = async () => {
+      try {
+        const result = await fetchUserApplication();
+        if (result.data) {
+          dispatch(loadApplicationData(result.data));
+        }
+      } catch (error) {
+        console.error('Failed to load application data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadUserApplication();
+  }, [dispatch]);
 
   const handleEditSection = (section: string) => { setEditingSection(section); };
   const handleCloseModal = () => { setEditingSection(null); };
@@ -142,6 +162,19 @@ export function LoanApplicationPage() {
   };
   
   const modalContent = getModalContent();
+
+  if (isLoading) {
+    return (
+      <div className="max-w-2xl mx-auto p-4 sm:p-8">
+        <div className="bg-cloud p-6 sm:p-8 rounded-lg shadow-medium border border-pebble min-h-[400px] flex items-center justify-center">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <p className="mt-2 text-sm text-gray-600">Loading your application...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-2xl mx-auto p-4 sm:p-8">

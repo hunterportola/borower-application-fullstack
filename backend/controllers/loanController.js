@@ -1,5 +1,5 @@
 // In backend/controllers/loanController.js
-import store from '../database.js';
+import applicationsStore from '../database-applications.js';
 
 export const submitApplication = async (req, res) => {
     // Application submission started
@@ -15,7 +15,7 @@ export const submitApplication = async (req, res) => {
         return res.status(400).json({ message: 'No application data received.' });
     }
 
-    const session = store.openSession();
+    const session = applicationsStore.openSession();
     try {
         const newApplication = {
             ...applicationData,
